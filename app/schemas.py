@@ -35,7 +35,8 @@ class JobRead(BaseModel):
     skills_json: Optional[str] = None
     summary: Optional[str] = None
     created_at: datetime
-
+    date_posted: Optional[str] = None
+    job_type: Optional[str] = None
     model_config = {"from_attributes": True}
 
 
