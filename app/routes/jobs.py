@@ -39,6 +39,8 @@ def _build_job_from_parsed(url: str, parsed_data: dict[str, Any]) -> Job:
         company=parsed_data.get("company"),
         location=parsed_data.get("location"),
         employment_type=parsed_data.get("employment_type"),
+        date_posted=parsed_data.get("date_posted"),
+        job_type=parsed_data.get("job_type"),
         description_raw=raw_description,
         description_clean=cleaned_description,
         skills_json=json.dumps(skills),
@@ -74,6 +76,7 @@ async def ingest_jobs(
         try:
             html = await fetcher.fetch_html(url)
             parsed_data = parser.parse_job_page(url, html)
+            print(json.dumps(parsed_data, indent=2))
             job = _build_job_from_parsed(url, parsed_data)
 
             session.add(job)

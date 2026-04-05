@@ -19,4 +19,6 @@ class Job(SQLModel, table=True):
     description_clean: Optional[str] = None
     skills_json: Optional[str] = None
     summary: Optional[str] = None
+    date_posted: Optional[str] = Field(default=None)
+    job_type: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
