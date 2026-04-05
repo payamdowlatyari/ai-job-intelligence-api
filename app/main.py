@@ -5,6 +5,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from app.config import ROOT_PATH
 from app.db import create_db_and_tables
 from app.routes import jobs, summarize, match
 
@@ -20,6 +21,16 @@ app = FastAPI(
     title="AI Job Intelligence API",
     description="Fetch, parse, store and analyze job postings with AI-ready endpoints.",
     version="0.1.0",
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    root_path=ROOT_PATH,
+
+    # Metadata
+    openapi_tags=[{"name": "jobs", "description": "Job postings"}, {"name": "health", "description": "Health-check"}],
+    contact={"name": "AI Job Intelligence", "url": "https://github.com/ai-job-intelligence/ai-job-intelligence-api"},
+
+    # Lifespan
     lifespan=lifespan,
 )
 

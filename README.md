@@ -1,175 +1,319 @@
 # AI Job Intelligence API
 
-A lightweight Python backend that fetches public job posting pages from the web, extracts structured data, stores it in SQLite, and exposes REST API endpoints for ingestion, listing, AI summarisation, and skill-match scoring.
+A lightweight Python backend that **ingests public job postings from the web**, transforms unstructured HTML into structured data, and provides **AI-powered insights** such as job summaries and candidate fit scoring.
 
 ---
 
-## Project Overview
+## 🚀 Overview
 
-| Layer | Technology |
-|---|---|
-| Web framework | FastAPI |
-| ASGI server | Uvicorn |
-| ORM / DB | SQLModel + SQLite |
-| HTTP client | httpx (async) |
-| HTML parsing | BeautifulSoup4 |
-| Schema validation | Pydantic v2 |
-| Config | python-dotenv |
-| Tests | pytest |
+Job postings are scattered across the web in inconsistent formats. This project solves that by:
+
+1. **Fetching** job pages from public URLs
+2. **Parsing & normalizing** messy HTML into a consistent schema
+3. **Extracting skills** using rule-based NLP
+4. **Providing APIs** to:
+   - search jobs
+   - summarize roles
+   - match candidates to jobs
+
+This demonstrates a real-world backend system combining **data ingestion + API design + applied AI**.
 
 ---
 
-## Setup Instructions
+## 🧩 Features
 
-### 1. Prerequisites
+### 🔍 Job Ingestion
 
-- Python 3.12+
+- Fetch job postings from public URLs
+- Parse structured data (title, company, location, description)
+- Extract and normalize skills
+- Handle duplicates and failures gracefully
 
-### 2. Clone and install dependencies
+### 📄 Job Retrieval
+
+- List jobs with filters:
+  - keyword
+  - company
+  - location
+
+- Retrieve detailed job records
+
+### 🧠 AI-Powered Summarization
+
+- Generate structured summaries:
+  - role overview
+  - responsibilities
+  - required skills
+  - nice-to-have skills
+  - inferred seniority
+
+### 🎯 Candidate Match Scoring
+
+- Match a candidate using:
+  - skill list OR resume text
+
+- Returns:
+  - fit score (0–100)
+  - matched skills
+  - missing skills
+  - extra skills
+  - explanation notes
+
+---
+
+## 🏗️ Architecture
+
+```
+FastAPI
+ ├── Routes (API layer)
+ ├── Services (business logic)
+ │     ├── Fetcher (web requests)
+ │     ├── Parser (HTML → structured data)
+ │     ├── Extractor (skills + cleaning)
+ │     ├── Matcher (scoring logic)
+ │     └── Summarizer (heuristic AI)
+ ├── Models (SQLModel / SQLite)
+ └── Schemas (Pydantic)
+```
+
+### Key Design Decisions
+
+- **FastAPI** → lightweight, async, built-in Swagger
+- **SQLite** → simple persistence for MVP
+- **Rule-based NLP first** → deterministic, explainable, cheap
+- **Service layer separation** → clean, testable architecture
+- **Batch ingestion** → partial success handling (important for real systems)
+
+---
+
+## ⚙️ Setup
+
+### 1. Clone the repo
 
 ```bash
-git clone https://github.com/payamdowlatyari/ai-job-intelligence-api.git
+git clone <repo-url>
 cd ai-job-intelligence-api
+```
+
+### 2. Create virtual environment
+
+```bash
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configure environment variables
-
-```bash
-cp .env.example .env
-# Edit .env if needed (defaults are fine for local development)
-```
-
----
-
-## Running Locally
+### 4. Run the server
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-The API will be available at <http://localhost:8000>.
+### 5. Open API docs
 
-Interactive API docs (Swagger UI): <http://localhost:8000/docs>
-
----
-
-## Running Tests
-
-```bash
-pytest tests/ -v
+```
+http://127.0.0.1:8000/docs
 ```
 
 ---
 
-## Example API Endpoints
+## 📡 API Endpoints
 
-### Health check
+### Health
 
 ```
 GET /health
 ```
 
-```json
-{"status": "ok"}
-```
+---
 
-### Ingest job postings
+### Ingest Jobs
 
 ```
 POST /jobs/ingest
-Content-Type: application/json
+```
 
+**Request**
+
+```json
 {
-  "urls": [
-    "https://example.com/jobs/senior-python-dev",
-    "https://example.com/jobs/backend-engineer"
-  ]
+  "urls": ["https://company.com/careers/software-engineer"]
 }
 ```
 
-### List jobs (with optional filters)
+**Response**
+
+```json
+{
+  "ingested_count": 1,
+  "existing_count": 0,
+  "failed_count": 0,
+  "jobs": [...],
+  "failures": []
+}
+```
+
+---
+
+### List Jobs
 
 ```
-GET /jobs?keyword=python&company=acme&location=remote
+GET /jobs?keyword=python&location=remote
 ```
 
-### Get a single job
+---
+
+### Get Job
 
 ```
 GET /jobs/{job_id}
 ```
 
-### Summarise a job
+---
+
+### Summarize Job
 
 ```
 POST /jobs/{job_id}/summarize
 ```
 
-### Match skills against a job
+**Response**
 
-```
-POST /jobs/{job_id}/match
-Content-Type: application/json
-
+```json
 {
-  "skills": ["Python", "FastAPI", "Docker"],
-  "resume_text": "Optional free-form resume text — skills are extracted automatically."
+  "job_id": 1,
+  "summary": "Backend-focused role building scalable services...",
+  "seniority": "Senior",
+  "responsibilities": [...],
+  "required_skills": [...],
+  "nice_to_have": [...]
 }
 ```
 
 ---
 
-## Project Structure
+### Match Candidate to Job
 
 ```
-ai-job-intelligence-api/
-  app/
-    main.py          # FastAPI app, router registration, startup hooks
-    config.py        # Environment variable loading
-    db.py            # SQLite engine, session dependency
-    models.py        # Job SQLModel table
-    schemas.py       # Pydantic request/response schemas
-    routes/
-      jobs.py        # POST /jobs/ingest, GET /jobs, GET /jobs/{id}
-      summarize.py   # POST /jobs/{id}/summarize
-      match.py       # POST /jobs/{id}/match
-    services/
-      fetcher.py     # async fetch_html(url)
-      parser.py      # parse_job_page(url, html) → dict
-      extractor.py   # clean_text, extract_skills
-      summarizer.py  # generate_placeholder_summary(job)
-      matcher.py     # match_job(job_skills, candidate_skills)
-    utils/
-      text.py        # truncate, slugify helpers
-  tests/
-    test_jobs.py     # API integration tests
-    test_parser.py   # HTML parser unit tests
-    test_matcher.py  # Matcher unit tests
-  requirements.txt
-  .env.example
-  README.md
+POST /jobs/{job_id}/match
+```
+
+**Request**
+
+```json
+{
+  "skills": ["Python", "FastAPI", "AWS", "SQL"]
+}
+```
+
+OR
+
+```json
+{
+  "resume_text": "5 years building backend APIs using Python and AWS..."
+}
+```
+
+**Response**
+
+```json
+{
+  "job_id": 1,
+  "fit_score": 78,
+  "candidate_skills": [...],
+  "matched_skills": [...],
+  "missing_skills": [...],
+  "extra_candidate_skills": [...],
+  "notes": "Moderate match — several relevant skills are present."
+}
 ```
 
 ---
 
-## Current Limitations
+## 🧠 How “AI” is Used
 
-- **No real LLM integration** — the `/summarize` endpoint uses simple heuristics.- **Rule-based skill extraction** — only a fixed keyword list is supported.
-- **SQLite** — not suitable for production concurrent workloads.
-- **No authentication** — all endpoints are public.
-- **Basic HTML parsing** — works best with structured pages that include JSON-LD.
+This project intentionally starts with **lightweight, explainable AI techniques**:
+
+- Skill extraction via keyword-based NLP
+- Heuristic summarization
+- Deterministic match scoring
+
+### Why?
+
+- Faster to build
+- Easier to debug
+- More predictable than LLM-only approaches
+
+### Future improvements:
+
+- LLM-based summarization
+- embedding-based semantic search
+- resume-job semantic matching
 
 ---
 
-## Future Improvements
+## 🧪 Testing
 
-- Integrate OpenAI / Anthropic / local LLM for real summarisation.
-- Expand skill extraction with NLP (spaCy, sentence-transformers).
-- Swap SQLite for PostgreSQL in production.
-- Add JWT authentication and rate limiting.
-- Build a background task queue (Celery / ARQ) for async ingestion.
-- Add pagination to `GET /jobs`.
-- Cache fetched HTML to avoid redundant network requests.
+```bash
+pytest
+```
+
+Includes:
+
+- parser tests
+- matcher tests
+- API tests (with mocked services)
+
+---
+
+## ⚖️ Tradeoffs
+
+| Decision              | Tradeoff                                   |
+| --------------------- | ------------------------------------------ |
+| SQLite                | Simple, but not scalable                   |
+| Rule-based extraction | Fast & explainable, but less flexible      |
+| In-memory filtering   | Easy, but not efficient for large datasets |
+| No async DB           | Simpler, but less scalable                 |
+
+---
+
+## 🔮 Future Improvements
+
+- Add vector search (FAISS / OpenSearch)
+- Add real LLM integration
+- Support multiple job sources automatically
+- Scheduled ingestion pipeline
+- Frontend dashboard (Next.js)
+- Resume upload + parsing
+
+---
+
+## 💡 Why This Project Stands Out
+
+This is not just a CRUD API. It demonstrates:
+
+- Real-world **web data ingestion**
+- Handling **messy unstructured data**
+- Clean **backend architecture**
+- Applied **AI/ML thinking**
+- Clear **product use case**
+
+---
+
+## 📌 Example Demo Flow
+
+1. Ingest a public job URL
+2. View structured job data
+3. Generate AI summary
+4. Match candidate skills
+
+---
+
+## 👤 Author
+
+Built as a portfolio project to demonstrate full-stack backend + AI capabilities.
