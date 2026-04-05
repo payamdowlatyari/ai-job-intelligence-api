@@ -37,7 +37,7 @@ def test_empty_job_skills() -> None:
     """When the job has no skills, fit score should be 0 with an informative note."""
     result = match_job([], ["Python"])
     assert result["fit_score"] == 0.0
-    assert "No skills found" in result["notes"]
+    assert "low confidence" in result["notes"]
 
 
 def test_empty_candidate_skills() -> None:
@@ -63,9 +63,23 @@ def test_strong_match_note() -> None:
     assert "Strong" in result["notes"]
 
 
-def test_weak_match_note() -> None:
-    """Fit score < 50 should produce a 'Weak match' note."""
+def test_partial_match_note() -> None:
+    """Fit score < 50 should produce a 'Partial match' note."""
     job_skills = ["Python", "FastAPI", "Docker", "AWS", "SQL", "Kubernetes", "Redis"]
     candidate_skills = ["Python"]
     result = match_job(job_skills, candidate_skills)
-    assert "Weak" in result["notes"]
+    assert "Partial" in result["notes"]
+
+
+def test_informative_match_note() -> None:
+    """When the job has no skills, fit score should be 0 with an informative note."""
+    result = match_job([], ["Python"])
+    assert "low confidence" in result["notes"]
+
+
+def test_moderate_match_note() -> None:
+    """Fit score >= 50 and < 80 should produce a 'Moderate match' note."""
+    job_skills = ["Python", "FastAPI", "Docker", "AWS", "SQL"]
+    candidate_skills = ["Python", "FastAPI", "Docker"]
+    result = match_job(job_skills, candidate_skills)
+    assert "Moderate" in result["notes"]

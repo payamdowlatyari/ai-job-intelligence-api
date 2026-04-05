@@ -1,55 +1,83 @@
 """Service for computing a skill-overlap match score between a job and a candidate."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 
-def match_job(job_skills: List[str], candidate_skills: List[str]) -> Dict[str, Any]:
-    """Compute a simple overlap-based fit score between job and candidate skills.
+def _normalize_skills(skills: list[str]) -> list[str]:
+    """Normalize skills by trimming, deduplicating, and preserving first-seen casing."""
+    seen: set[str] = set()
+    normalized: list[str] = []
+
+    for skill in skills:
+        cleaned = skill.strip()
+        if not cleaned:
+            continue
+
+        key = cleaned.lower()
+        if key not in seen:
+            seen.add(key)
+            normalized.append(cleaned)
+
+    return normalized
+
+
+def match_job(job_skills: list[str], candidate_skills: list[str]) -> dict[str, Any]:
+    """Compute a deterministic overlap-based fit score.
 
     Args:
-        job_skills:       Skills extracted from the job posting.
-        candidate_skills: Skills provided by or extracted from the candidate.
+        job_skills: Skills extracted from the job posting.
+        candidate_skills: Skills provided directly or extracted from resume text.
 
     Returns:
-        A dictionary with keys:
-            fit_score     – float 0–100 representing percentage overlap.
-            matched_skills – skills present in both lists.
-            missing_skills – job skills absent from the candidate profile.
-            notes          – human-readable summary of the match quality.
+        A dictionary containing score, overlap details, and a short note.
     """
-    # Normalize to lower-case sets for comparison
-    job_set = {s.lower() for s in job_skills}
-    candidate_set = {s.lower() for s in candidate_skills}
+    normalized_job = _normalize_skills(job_skills)
+    normalized_candidate = _normalize_skills(candidate_skills)
 
-    if not job_set:
+    job_map = {skill.lower(): skill for skill in normalized_job}
+    candidate_map = {skill.lower(): skill for skill in normalized_candidate}
+
+    job_keys = set(job_map.keys())
+    candidate_keys = set(candidate_map.keys())
+
+    if not job_keys:
         return {
-            "fit_score": 0.0,
+            "fit_score": 0,
+            "candidate_skills": normalized_candidate,
             "matched_skills": [],
             "missing_skills": [],
-            "notes": "No skills found in the job posting to compare against.",
+            "extra_candidate_skills": normalized_candidate,
+            "notes": "No extracted job skills were available, so this score has low confidence.",
         }
 
-    # Preserve original casing from job_skills for output
-    job_skill_map = {s.lower(): s for s in job_skills}
+    matched_keys = job_keys & candidate_keys
+    missing_keys = job_keys - candidate_keys
+    extra_keys = candidate_keys - job_keys
 
-    matched_lower = job_set & candidate_set
-    missing_lower = job_set - candidate_set
+    matched_skills = sorted((job_map[key] for key in matched_keys), key=str.lower)
+    missing_skills = sorted((job_map[key] for key in missing_keys), key=str.lower)
+    extra_candidate_skills = sorted(
+        (candidate_map[key] for key in extra_keys),
+        key=str.lower,
+    )
 
-    matched_skills = [job_skill_map[s] for s in sorted(matched_lower)]
-    missing_skills = [job_skill_map[s] for s in sorted(missing_lower)]
-
-    fit_score = round(len(matched_lower) / len(job_set) * 100, 2)
+    overlap_ratio = len(matched_keys) / len(job_keys)
+    fit_score = round(overlap_ratio * 100)
 
     if fit_score >= 80:
-        notes = "Strong match — most required skills are present."
+        notes = "Strong match — most extracted job skills are covered."
     elif fit_score >= 50:
-        notes = "Moderate match — some key skills are missing."
+        notes = "Moderate match — several relevant skills are present, but there are still gaps."
+    elif fit_score > 0:
+        notes = "Partial match — some overlap exists, but important skills are missing."
     else:
-        notes = "Weak match — significant skill gaps detected."
+        notes = "Low match — no meaningful skill overlap was found."
 
     return {
         "fit_score": fit_score,
+        "candidate_skills": normalized_candidate,
         "matched_skills": matched_skills,
         "missing_skills": missing_skills,
+        "extra_candidate_skills": extra_candidate_skills,
         "notes": notes,
     }

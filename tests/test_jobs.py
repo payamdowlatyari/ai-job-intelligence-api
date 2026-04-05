@@ -103,7 +103,7 @@ def test_ingest_job(mock_fetch, client: TestClient) -> None:
     response = client.post("/jobs/ingest", json=payload)
     assert response.status_code == 200
     data = response.json()
-    assert data["count"] == 1
+    assert data["ingested_count"] == 1
     job = data["jobs"][0]
     assert job["title"] == "Python Developer"
     assert job["company"] == "MockCorp"
@@ -118,7 +118,7 @@ def test_ingest_duplicate_url(mock_fetch, client: TestClient) -> None:
     response = client.post("/jobs/ingest", json=payload)
     assert response.status_code == 200
     data = response.json()
-    assert data["count"] == 1
+    assert data["existing_count"] == 1
     # Fetcher should only have been called once
     assert mock_fetch.call_count == 1
 
