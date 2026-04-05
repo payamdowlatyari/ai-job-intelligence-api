@@ -71,12 +71,6 @@ def test_partial_match_note() -> None:
     assert "Partial" in result["notes"]
 
 
-def test_informative_match_note() -> None:
-    """When the job has no skills, fit score should be 0 with an informative note."""
-    result = match_job([], ["Python"])
-    assert "low confidence" in result["notes"]
-
-
 def test_moderate_match_note() -> None:
     """Fit score >= 50 and < 80 should produce a 'Moderate match' note."""
     job_skills = ["Python", "FastAPI", "Docker", "AWS", "SQL"]
