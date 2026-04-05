@@ -1,6 +1,5 @@
 """Match router: score a candidate against a stored job posting."""
 
-import json
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -11,23 +10,9 @@ from app.models import Job
 from app.schemas import MatchRequest, MatchResponse
 from app.services.extractor import extract_skills
 from app.services.matcher import match_job
+from app.utils.json import parse_skills_json
 
 router = APIRouter()
-
-
-def _load_job_skills(skills_json: Optional[str] = None) -> list[str]:
-    """Parse the skills JSON from the database, returning an empty list if missing or invalid."""
-    if not skills_json:
-        return []
-
-    try:
-        parsed = json.loads(skills_json)
-        if isinstance(parsed, list):
-            return [str(item).strip() for item in parsed if str(item).strip()]
-    except (json.JSONDecodeError, TypeError, ValueError):
-        pass
-
-    return []
 
 
 def _merge_candidate_skills(
@@ -66,7 +51,7 @@ def match_job_route(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    job_skills = _load_job_skills(job.skills_json)
+    job_skills = parse_skills_json(job.skills_json)
     candidate_skills = _merge_candidate_skills(request.skills, request.resume_text)
 
     result = match_job(job_skills, candidate_skills)

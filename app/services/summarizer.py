@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import re
 from typing import Any
 
 from app.models import Job
+from app.utils.json import parse_skills_json
 
 
 SENIORITY_RULES = [
@@ -47,21 +47,6 @@ NICE_TO_HAVE_HINTS = [
     "plus",
     "good to have",
 ]
-
-
-def _parse_skills(skills_json: str | None) -> list[str]:
-    """Safely parse stored skills JSON."""
-    if not skills_json:
-        return []
-
-    try:
-        parsed = json.loads(skills_json)
-        if isinstance(parsed, list):
-            return [str(item).strip() for item in parsed if str(item).strip()]
-    except (json.JSONDecodeError, TypeError, ValueError):
-        pass
-
-    return []
 
 
 def _infer_seniority(title: str | None) -> str:
@@ -190,7 +175,7 @@ def generate_placeholder_summary(job: Job) -> dict[str, Any]:
         and nice-to-have skills.
     """
     description = job.description_clean or job.description_raw or ""
-    skills = _parse_skills(job.skills_json)
+    skills = parse_skills_json(job.skills_json)
     seniority = _infer_seniority(job.title)
     responsibilities = _extract_responsibilities(description)
     required_skills, nice_to_have = _classify_skills(description, skills)

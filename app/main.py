@@ -5,6 +5,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from app.config import ROOT_PATH
 from app.db import create_db_and_tables
 from app.routes import jobs, summarize, match
 
@@ -23,7 +24,7 @@ app = FastAPI(
     openapi_url="/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
-    root_path="/api/v1",
+    root_path=ROOT_PATH,
 
     # Metadata
     openapi_tags=[{"name": "jobs", "description": "Job postings"}, {"name": "health", "description": "Health-check"}],

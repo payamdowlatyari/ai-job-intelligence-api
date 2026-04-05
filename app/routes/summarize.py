@@ -16,7 +16,12 @@ def summarize_job(
     job_id: int,
     session: Session = Depends(get_session),
 ) -> SummarizeResponse:
-    """Generate a heuristic-based summary for the given job and persist it."""
+    """Generate a heuristic-based summary for the given job and persist the summary text.
+
+    Only the ``summary`` field is written back to the database. Additional details
+    returned in the response (seniority, responsibilities, required_skills,
+    nice_to_have) are derived at request time and are not persisted.
+    """
     job = session.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
