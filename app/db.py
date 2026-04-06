@@ -1,17 +1,22 @@
-"""Database engine and session management using SQLModel."""
+import os
+from sqlmodel import SQLModel, Session, create_engine
 
-from sqlmodel import SQLModel, create_engine, Session
-from app.config import DATABASE_URL
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL, echo=False)
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set")
 
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-def create_db_and_tables() -> None:
-    """Create all database tables defined in SQLModel metadata."""
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+)
+
+def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
-
 def get_session():
-    """FastAPI dependency that provides a database session."""
     with Session(engine) as session:
         yield session
