@@ -25,12 +25,16 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     root_path=ROOT_PATH,
-
-    # Metadata
-    openapi_tags=[{"name": "jobs", "description": "Job postings"}, {"name": "health", "description": "Health-check"}],
-    contact={"name": "AI Job Intelligence", "url": "https://github.com/ai-job-intelligence/ai-job-intelligence-api"},
-
-    # Lifespan
+    openapi_tags=[
+        {"name": "jobs", "description": "Job postings"},
+        {"name": "summarize", "description": "Summarization endpoints"},
+        {"name": "match", "description": "Job matching endpoints"},
+        {"name": "health", "description": "Health-check"},
+    ],
+    contact={
+        "name": "AI Job Intelligence",
+        "url": "https://github.com/ai-job-intelligence/ai-job-intelligence-api",
+    },
     lifespan=lifespan,
 )
 

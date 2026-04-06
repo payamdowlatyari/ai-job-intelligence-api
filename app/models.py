@@ -10,15 +10,16 @@ class Job(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     url: str = Field(unique=True, index=True)
-    source: Optional[str] = None
-    title: Optional[str] = None
-    company: Optional[str] = None
-    location: Optional[str] = None
+    source: Optional[str] = Field(default=None, index=True)
+    title: Optional[str] = Field(default=None, index=True)
+    company: Optional[str] = Field(default=None, index=True)
+    location: Optional[str] = Field(default=None, index=True)
     employment_type: Optional[str] = None
     description_raw: Optional[str] = None
     description_clean: Optional[str] = None
     skills_json: Optional[str] = None
     summary: Optional[str] = None
     date_posted: Optional[str] = Field(default=None)
-    job_type: Optional[str] = Field(default=None)
+    job_type: Optional[str] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
