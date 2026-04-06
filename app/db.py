@@ -14,9 +14,6 @@ engine = create_engine(
     pool_pre_ping=True,
 )
 
-with engine.connect() as connection:
-    print("Database connection test successful:", connection.dialect.name)
-
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 

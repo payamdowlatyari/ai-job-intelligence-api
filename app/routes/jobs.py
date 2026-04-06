@@ -76,7 +76,7 @@ async def ingest_jobs(
         try:
             html = await fetcher.fetch_html(url)
             parsed_data = parser.parse_job_page(url, html)
-            print(json.dumps(parsed_data, indent=2))
+            
             job = _build_job_from_parsed(url, parsed_data)
 
             session.add(job)
