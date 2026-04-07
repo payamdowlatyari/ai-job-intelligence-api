@@ -11,6 +11,8 @@ from bs4 import BeautifulSoup
 from app.utils.time import parse_relative_time
 
 def _is_valid_location(value: str | None) -> bool:
+    """Return True if the location string is valid."""
+
     if not value:
         return False
 
@@ -34,6 +36,7 @@ def _clean_text(value: str | None) -> Optional[str]:
 
 
 def _looks_like_location(line: str) -> bool:
+    """Return True if the line looks like a location."""
     return bool(
         re.search(
             r"\b(remote|united states|hybrid|on[- ]site|[A-Za-z\s]+,\s*[A-Z]{2})\b",
@@ -44,6 +47,7 @@ def _looks_like_location(line: str) -> bool:
 
 
 def _looks_like_relative_date(line: str) -> bool:
+    """Return True if the line looks like a relative date."""
     return bool(
         re.search(
             r"\b\d+\s+(minute|minutes|hour|hours|day|days|week|weeks|month|months)\s+ago\b",

@@ -48,7 +48,8 @@ def test_health_check(client: TestClient) -> None:
     """GET /health should return 200 with status ok."""
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "message": "AI Job Intelligence API is healthy and running! ✅"}
+
 
 
 # ---------------------------------------------------------------------------
