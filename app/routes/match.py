@@ -109,7 +109,10 @@ def match_jobs(
         if len(uncached_vectors) != len(uncached_jobs):
             raise HTTPException(
                 status_code=502,
-                detail="Embedding service returned an unexpected number of vectors.",
+                detail=(
+                    f"Embedding service returned {len(uncached_vectors)} vectors "
+                    f"but expected {len(uncached_jobs)}."
+                ),
             )
 
         for (job, _), vector in zip(uncached_jobs, uncached_vectors):

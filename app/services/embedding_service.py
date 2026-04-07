@@ -130,10 +130,10 @@ def _create_embeddings(inputs: list[str]) -> list[list[float]]:
                 input=inputs,
             )
             vectors = [item.embedding for item in response.data]
-            for vector in vectors:
+            for i, vector in enumerate(vectors):
                 if len(vector) != EMBEDDING_DIMENSION:
                     raise ValueError(
-                        f"Unexpected embedding dimension {len(vector)}; "
+                        f"Vector at index {i} has dimension {len(vector)}; "
                         f"expected {EMBEDDING_DIMENSION} for model {EMBEDDING_MODEL}."
                     )
             return vectors
