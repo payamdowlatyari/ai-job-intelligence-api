@@ -3,7 +3,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.config import ROOT_PATH, API_VERSION
-from app.routes import jobs, summarize, match
+from app.routes import jobs, summarize, match, cover_letter
 
 
 @asynccontextmanager
@@ -24,6 +24,7 @@ app = FastAPI(
         {"name": "summarize", "description": "Summarization endpoints"},
         {"name": "match", "description": "Job matching endpoints"},
         {"name": "general", "description": "General endpoints including health-check"},
+        {"name": "cover-letter", "description": "Cover letter generation endpoints"},
     ],
     contact={
         "name": "AI Job Intelligence",
@@ -55,3 +56,4 @@ def health_check() -> dict:
 app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 app.include_router(summarize.router, prefix="/jobs", tags=["summarize"])
 app.include_router(match.router, prefix="/jobs", tags=["match"])
+app.include_router(cover_letter.router, prefix="/jobs", tags=["cover-letter"])
