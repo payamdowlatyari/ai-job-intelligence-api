@@ -155,14 +155,18 @@ def match_job_route(
 
     .. deprecated::
         Use ``POST /jobs/match`` for semantic embedding-based matching across
-        all jobs.  This endpoint is kept for backwards compatibility only.
+        all jobs.  This endpoint is kept for backward compatibility only.
     """
     job = session.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    job_skills = parse_skills_json(job.skills_json)
-    candidate_skills = _merge_candidate_skills(request.skills, request.resume_text)
+    try:
+        job_skills = parse_skills_json(job.skills_json)
+        candidate_skills = _merge_candidate_skills(request.skills, request.resume_text)
+    except Exception as exc:
+        logger.error("Skill extraction error: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to process skills. Please try again.")
 
     result = match_job(job_skills, candidate_skills)
 
