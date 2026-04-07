@@ -9,7 +9,7 @@ from openai import OpenAI, RateLimitError
 from app.services.cache_utils import text_cache_key
 from app.services.local_cache import TTLCache
 
-_client: OpenAI | None = None
+_client: OpenAI = None
 
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSION = 1536  # expected output dimension for this model
