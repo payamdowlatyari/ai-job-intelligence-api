@@ -5,6 +5,18 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 MODEL = "gpt-5.4-mini"
 
+def _get_client() -> OpenAI:
+    """Return a lazily-created OpenAI client, raising clearly if the key is absent."""
+    global client
+    if client is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise EnvironmentError(
+                "OPENAI_API_KEY is not set. Set it before calling cover letter functions."
+            )
+        client = OpenAI(api_key=api_key)
+    return client
+
 
 def build_cover_letter_prompt(
     *,
@@ -60,6 +72,7 @@ def generate_cover_letter(
         length=length,
     )
 
+    client = _get_client()
     response = client.responses.create(
         model=MODEL,
         input=[
