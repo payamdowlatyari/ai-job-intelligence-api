@@ -126,6 +126,18 @@ class MatchResponse(BaseModel):
     matches: List[MatchResult]
 
 
+class SkillMatchResponse(BaseModel):
+    """Schema for the legacy skill-overlap job match response (POST /jobs/{job_id}/match)."""
+
+    job_id: int
+    fit_score: int
+    candidate_skills: List[str]
+    matched_skills: List[str]
+    missing_skills: List[str]
+    extra_candidate_skills: List[str]
+    notes: str
+
+
 class SummarizeResponse(BaseModel):
     """Schema for the summarize response."""
 

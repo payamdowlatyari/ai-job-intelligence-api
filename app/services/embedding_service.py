@@ -9,15 +9,28 @@ from openai import OpenAI, RateLimitError
 from app.services.cache_utils import text_cache_key
 from app.services.local_cache import TTLCache
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+_client: OpenAI | None = None
 
 EMBEDDING_MODEL = "text-embedding-3-small"
-EMBEDDING_DIMENSION = 1536  # current common size for this model family in many examples
+EMBEDDING_DIMENSION = 1536  # expected output dimension for this model
 MAX_BATCH_SIZE = 20
 MAX_RETRIES = 3
 
 # Good for repeated resume/profile embeddings during one server lifecycle
 resume_embedding_cache = TTLCache(ttl_seconds=3600, max_items=200)
+
+
+def _get_client() -> OpenAI:
+    """Return a lazily-created OpenAI client, raising clearly if the key is absent."""
+    global _client
+    if _client is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise EnvironmentError(
+                "OPENAI_API_KEY is not set. Set it before calling embedding functions."
+            )
+        _client = OpenAI(api_key=api_key)
+    return _client
 
 
 def build_job_text(job) -> str:
@@ -52,12 +65,21 @@ def dumps_embedding(vector: List[float]) -> str:
 def loads_embedding(value: str) -> List[float]:
     """
     Deserialize a JSON string into a list of floats.
-    This is used to load the embedding vector from the database as a list.
+    Malformed or unexpected data is treated as a missing embedding.
     """
 
     if not value:
         return []
-    return json.loads(value)
+
+    try:
+        vector = json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+    if not isinstance(vector, list):
+        return []
+
+    return vector
 
 
 def cosine_similarity(a: List[float], b: List[float]) -> float:
@@ -100,13 +122,21 @@ def _create_embeddings(inputs: list[str]) -> list[list[float]]:
     in one call, which reduces request count substantially.
     """
 
+    client = _get_client()
     for attempt in range(MAX_RETRIES):
         try:
             response = client.embeddings.create(
                 model=EMBEDDING_MODEL,
                 input=inputs,
             )
-            return [item.embedding for item in response.data]
+            vectors = [item.embedding for item in response.data]
+            for vector in vectors:
+                if len(vector) != EMBEDDING_DIMENSION:
+                    raise ValueError(
+                        f"Unexpected embedding dimension {len(vector)}; "
+                        f"expected {EMBEDDING_DIMENSION} for model {EMBEDDING_MODEL}."
+                    )
+            return vectors
         except RateLimitError as exc:
             # Retry transient rate-limit conditions only.
             # insufficient_quota should not be retried aggressively.
