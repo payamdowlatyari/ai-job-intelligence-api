@@ -66,7 +66,7 @@ def create_cover_letter(
 
 
 @router.post("/cover-letter/from-url", response_model=CoverLetterResponse)
-def create_cover_letter_from_url(
+async def create_cover_letter_from_url(
     payload: CoverLetterFromUrlRequest,
     session: Session = Depends(get_session),
 ) -> CoverLetterResponse:
@@ -82,7 +82,7 @@ def create_cover_letter_from_url(
         job = existing_job
     else:
         try:
-            job = ingest_job_from_url(job_url=job_url, session=session)
+            job = await ingest_job_from_url(job_url=job_url, session=session)
             was_job_created = True
         except Exception as exc:
             raise HTTPException(status_code=400, detail=f"Failed to ingest job from URL: {exc}")

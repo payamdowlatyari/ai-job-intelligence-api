@@ -57,6 +57,8 @@ def match_jobs(
     payload: MatchRequest,
     session: Session = Depends(get_session),
 ) -> MatchResponse:
+    """Match jobs to a resume."""
+
     query_text = payload.to_query_text()
     if not query_text:
         raise HTTPException(status_code=400, detail="No valid matching input provided.")

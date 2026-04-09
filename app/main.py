@@ -1,10 +1,14 @@
 """FastAPI application entry point."""
 
+import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.config import ROOT_PATH, API_VERSION
 from app.routes import jobs, summarize, match, cover_letter
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -38,6 +42,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def log_request_body(request: Request, call_next):
+    """Log raw request body for debugging 422 errors."""
+    if request.method in ("POST", "PUT", "PATCH"):
+        body = await request.body()
+        print(
+            f"DEBUG >>> {request.method} {request.url.path} "
+            f"Content-Type: {request.headers.get('content-type')} "
+            f"Body: {body[:2000]}",
+            flush=True,
+        )
+    response = await call_next(request)
+    return response
 
 @app.get("/", tags=["general"])
 def root() -> dict:
