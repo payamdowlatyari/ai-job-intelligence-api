@@ -7,6 +7,7 @@ from typing import Any, List, Optional
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.db import get_session
@@ -142,13 +143,23 @@ def create_job(
     session: Session = Depends(get_session),
 ) -> JobRead:
     """Create a new job posting manually."""
+    if not _is_valid_http_url(payload.url):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid URL. Only absolute http/https URLs are supported.",
+        )
+
     existing = session.exec(select(Job).where(Job.url == payload.url)).first()
     if existing:
         raise HTTPException(status_code=409, detail="A job with this URL already exists.")
 
     job = Job(**payload.model_dump())
     session.add(job)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(status_code=409, detail="A job with this URL already exists.")
     session.refresh(job)
     return JobRead.model_validate(job)
 
@@ -175,11 +186,22 @@ def update_job(
         raise HTTPException(status_code=404, detail="Job not found")
 
     updates = payload.model_dump(exclude_unset=True)
+
+    if "url" in updates and not _is_valid_http_url(updates["url"]):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid URL. Only absolute http/https URLs are supported.",
+        )
+
     for field, value in updates.items():
         setattr(job, field, value)
 
     session.add(job)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(status_code=409, detail="A job with this URL already exists.")
     session.refresh(job)
     return JobRead.model_validate(job)
 
