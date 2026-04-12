@@ -6,12 +6,12 @@ import json
 from typing import Any, List, Optional
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
 from app.db import get_session
 from app.models import Job
-from app.schemas import IngestJobsRequest, IngestJobsResponse, JobListResponse, JobRead
+from app.schemas import IngestJobsRequest, IngestJobsResponse, JobCreate, JobListResponse, JobRead, JobUpdate
 from app.services import extractor, fetcher, parser
 
 router = APIRouter()
@@ -136,13 +136,63 @@ def list_jobs(
     )
 
 
+@router.post("", response_model=JobRead, status_code=201)
+def create_job(
+    payload: JobCreate,
+    session: Session = Depends(get_session),
+) -> JobRead:
+    """Create a new job posting manually."""
+    existing = session.exec(select(Job).where(Job.url == payload.url)).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="A job with this URL already exists.")
+
+    job = Job(**payload.model_dump())
+    session.add(job)
+    session.commit()
+    session.refresh(job)
+    return JobRead.model_validate(job)
+
+
 @router.get("/{job_id}", response_model=JobRead)
-def get_job(job_id: int, session: Session = Depends(get_session)) -> JobRead:
+def get_job(job_id: str, session: Session = Depends(get_session)) -> JobRead:
     """Return a single job posting by ID."""
     job = session.get(Job, job_id)
     if not job:
-        from fastapi import HTTPException
-
         raise HTTPException(status_code=404, detail="Job not found")
 
     return JobRead.model_validate(job)
+
+
+@router.patch("/{job_id}", response_model=JobRead)
+def update_job(
+    job_id: str,
+    payload: JobUpdate,
+    session: Session = Depends(get_session),
+) -> JobRead:
+    """Partially update an existing job posting."""
+    job = session.get(Job, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    updates = payload.model_dump(exclude_unset=True)
+    for field, value in updates.items():
+        setattr(job, field, value)
+
+    session.add(job)
+    session.commit()
+    session.refresh(job)
+    return JobRead.model_validate(job)
+
+
+@router.delete("/{job_id}", status_code=204)
+def delete_job(
+    job_id: str,
+    session: Session = Depends(get_session),
+) -> None:
+    """Delete a job posting by ID."""
+    job = session.get(Job, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    session.delete(job)
+    session.commit()

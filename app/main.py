@@ -27,6 +27,9 @@ app = FastAPI(
     openapi_tags=[
         {"name": "general", "description": "General endpoints including health-check"},
         {"name": "jobs", "description": "Job postings"},
+        {"name": "summarization", "description": "Job description summarization"},
+        {"name": "matching", "description": "AI-based job matching"},
+        {"name": "cover-letter", "description": "AI-generated cover letters"},
     ],
     contact={
         "name": "AI Job Intelligence",
@@ -78,6 +81,6 @@ def health_check() -> dict:
 
 
 app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
-app.include_router(summarize.router, prefix="/jobs", tags=["jobs"])
-app.include_router(match.router, prefix="/jobs", tags=["jobs"])
-app.include_router(cover_letter.router, prefix="/jobs", tags=["jobs"])
+app.include_router(summarize.router, prefix="/jobs", tags=["summarization"])
+app.include_router(match.router, prefix="/jobs", tags=["matching"])
+app.include_router(cover_letter.router, prefix="/jobs", tags=["cover-letter"])

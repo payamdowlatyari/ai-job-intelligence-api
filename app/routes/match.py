@@ -148,11 +148,9 @@ def match_jobs(
 @router.post(
     "/{job_id}/match",
     response_model=SkillMatchResponse,
-    deprecated=True,
-    summary="Match candidate to a single job (deprecated)",
 )
 def match_job_route(
-    job_id: int,
+    job_id: str,
     request: MatchRequest,
     session: Session = Depends(get_session),
 ) -> SkillMatchResponse:
