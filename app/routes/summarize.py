@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.post("/{job_id}/summarize", response_model=SummarizeResponse)
 def summarize_job(
-    job_id: int,
+    job_id: str,
     session: Session = Depends(get_session),
 ) -> SummarizeResponse:
     """Generate a heuristic-based summary for the given job and persist the summary text.

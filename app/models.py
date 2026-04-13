@@ -1,5 +1,6 @@
 """SQLModel table definition for the Job entity."""
 
+import uuid
 from datetime import datetime, timezone
 from typing import Optional
 from sqlmodel import Field, SQLModel
@@ -8,7 +9,10 @@ from sqlmodel import Field, SQLModel
 class Job(SQLModel, table=True):
     """Represents a job posting stored in the database."""
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        primary_key=True,
+    )
     url: str = Field(unique=True, index=True)
     source: Optional[str] = Field(default=None, index=True)
     title: Optional[str] = Field(default=None, index=True)

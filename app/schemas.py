@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import List, Optional, Literal
 
-from pydantic import BaseModel, HttpUrl, Field, model_validator
+from pydantic import BaseModel, HttpUrl, Field, field_validator, model_validator
 
 
 class JobCreate(BaseModel):
@@ -22,11 +22,32 @@ class JobCreate(BaseModel):
     job_type: Optional[str] = None
 
 
+class JobUpdate(BaseModel):
+    """Schema for updating an existing job record."""
+
+    url: Optional[str] = None
+    source: Optional[str] = None
+    title: Optional[str] = None
+    company: Optional[str] = None
+    location: Optional[str] = None
+    employment_type: Optional[str] = None
+    description_raw: Optional[str] = None
+    description_clean: Optional[str] = None
+    skills_json: Optional[str] = None
+    date_posted: Optional[str] = None
+    job_type: Optional[str] = None
+
+
 class JobRead(BaseModel):
     """Schema for reading a job record from the database."""
 
-    id: int
+    id: str
     url: str
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def coerce_id_to_str(cls, v: object) -> str:
+        return str(v)
     source: Optional[str] = None
     title: Optional[str] = None
     company: Optional[str] = None
@@ -129,7 +150,7 @@ class MatchResponse(BaseModel):
 class SkillMatchResponse(BaseModel):
     """Schema for the legacy skill-overlap job match response (POST /jobs/{job_id}/match)."""
 
-    job_id: int
+    job_id: str
     fit_score: int
     candidate_skills: List[str]
     matched_skills: List[str]
@@ -141,7 +162,7 @@ class SkillMatchResponse(BaseModel):
 class SummarizeResponse(BaseModel):
     """Schema for the summarize response."""
 
-    job_id: int
+    job_id: str
     summary: str
     seniority: str
     responsibilities: List[str]
@@ -152,7 +173,7 @@ class SummarizeResponse(BaseModel):
 class CoverLetterRequest(BaseModel):
     """Generate a cover letter from an existing job or raw job text."""
 
-    job_id: Optional[int] = None
+    job_id: Optional[str] = None
     job_text: Optional[str] = None
     resume_text: str
     candidate_name: Optional[str] = None
@@ -184,7 +205,7 @@ class CoverLetterFromUrlRequest(BaseModel):
 class CoverLetterResponse(BaseModel):
     """Generated cover letter response."""
 
-    job_id: Optional[int] = None
+    job_id: Optional[str] = None
     job_url: Optional[str] = None
     company: Optional[str] = None
     role_title: Optional[str] = None

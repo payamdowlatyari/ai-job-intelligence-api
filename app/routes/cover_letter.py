@@ -23,6 +23,9 @@ def create_cover_letter(
     payload: CoverLetterRequest,
     session: Session = Depends(get_session),
 ) -> CoverLetterResponse:
+    """
+    Generate a cover letter based on a job text or existing job.
+    """
     job = None
     job_text = payload.job_text
     company = payload.company_override
@@ -70,6 +73,16 @@ async def create_cover_letter_from_url(
     payload: CoverLetterFromUrlRequest,
     session: Session = Depends(get_session),
 ) -> CoverLetterResponse:
+    """
+    Generate a cover letter based on a job posting URL.
+
+    If the job posting doesn't already exist in the database, it will be ingested
+    before generating the cover letter. If ingestion fails, an error will be returned.
+
+    Returns a cover letter response with the generated cover letter, job ID, job URL,
+    company, role title, and a flag indicating whether the job was created during
+    this request.
+    """
     job_url = str(payload.job_url)
 
     existing_job = session.exec(
