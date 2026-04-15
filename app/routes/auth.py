@@ -1,6 +1,7 @@
 """Auth routes: register and login."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.db import get_session
@@ -30,7 +31,14 @@ def register(
         name=payload.name,
     )
     session.add(user)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A user with this email already exists.",
+        )
     session.refresh(user)
     return UserRead.model_validate(user)
 
