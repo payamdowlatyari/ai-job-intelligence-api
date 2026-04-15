@@ -6,8 +6,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
+from app.auth import get_current_user
 from app.db import get_session
-from app.models import Job
+from app.models import Job, User
 from app.schemas import JobRead, MatchRequest, MatchResponse, MatchResult, SkillMatchResponse
 from app.services.embedding_service import (
     build_job_text,
@@ -56,6 +57,7 @@ def _merge_candidate_skills(
 def match_jobs(
     payload: MatchRequest,
     session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
 ) -> MatchResponse:
     """Match jobs to a resume."""
 
@@ -155,6 +157,7 @@ def match_job_route(
     job_id: str,
     request: MatchRequest,
     session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
 ) -> SkillMatchResponse:
     """Compare candidate skills or resume text against a stored job posting.
 

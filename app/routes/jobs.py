@@ -10,8 +10,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
+from app.auth import get_current_user
 from app.db import get_session
-from app.models import Job
+from app.models import Job, User
 from app.schemas import IngestJobsRequest, IngestJobsResponse, JobCreate, JobListResponse, JobRead, JobUpdate
 from app.services import extractor, fetcher, parser
 
@@ -52,6 +53,7 @@ def _build_job_from_parsed(url: str, parsed_data: dict[str, Any]) -> Job:
 async def ingest_jobs(
     request: IngestJobsRequest,
     session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
 ) -> IngestJobsResponse:
     """Fetch, parse, and store job postings from the provided URLs.
 
@@ -106,6 +108,7 @@ def list_jobs(
     company: Optional[str] = Query(default=None),
     location: Optional[str] = Query(default=None),
     session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
 ) -> JobListResponse:
     """Return a filtered list of job postings."""
     jobs = session.exec(select(Job)).all()
@@ -141,6 +144,7 @@ def list_jobs(
 def create_job(
     payload: JobCreate,
     session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
 ) -> JobRead:
     """Create a new job posting manually."""
     if not _is_valid_http_url(payload.url):
@@ -165,7 +169,7 @@ def create_job(
 
 
 @router.get("/{job_id}", response_model=JobRead)
-def get_job(job_id: str, session: Session = Depends(get_session)) -> JobRead:
+def get_job(job_id: str, session: Session = Depends(get_session), _current_user: User = Depends(get_current_user)) -> JobRead:
     """Return a single job posting by ID."""
     job = session.get(Job, job_id)
     if not job:
@@ -179,6 +183,7 @@ def update_job(
     job_id: str,
     payload: JobUpdate,
     session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
 ) -> JobRead:
     """Partially update an existing job posting."""
     job = session.get(Job, job_id)
@@ -210,6 +215,7 @@ def update_job(
 def delete_job(
     job_id: str,
     session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
 ) -> None:
     """Delete a job posting by ID."""
     job = session.get(Job, job_id)

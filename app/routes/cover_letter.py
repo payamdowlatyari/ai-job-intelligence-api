@@ -3,8 +3,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
+from app.auth import get_current_user
 from app.db import get_session
-from app.models import Job
+from app.models import Job, User
 from app.schemas import (
     CoverLetterRequest,
     CoverLetterFromUrlRequest,
@@ -22,6 +23,7 @@ router = APIRouter()
 def create_cover_letter(
     payload: CoverLetterRequest,
     session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
 ) -> CoverLetterResponse:
     """
     Generate a cover letter based on a job text or existing job.
@@ -72,6 +74,7 @@ def create_cover_letter(
 async def create_cover_letter_from_url(
     payload: CoverLetterFromUrlRequest,
     session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
 ) -> CoverLetterResponse:
     """
     Generate a cover letter based on a job posting URL.

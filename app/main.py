@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.config import ROOT_PATH, API_VERSION
-from app.routes import jobs, summarize, match, cover_letter
+from app.routes import auth, jobs, summarize, match, cover_letter
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,7 @@ app = FastAPI(
     redoc_url="/redoc",
     root_path=ROOT_PATH,
     openapi_tags=[
+        {"name": "auth", "description": "User registration and authentication"},
         {"name": "general", "description": "General endpoints including health-check"},
         {"name": "jobs", "description": "Job postings"},
         {"name": "summarization", "description": "Job description summarization"},
@@ -80,6 +81,7 @@ def health_check() -> dict:
     }
 
 
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 app.include_router(summarize.router, prefix="/jobs", tags=["summarization"])
 app.include_router(match.router, prefix="/jobs", tags=["matching"])
