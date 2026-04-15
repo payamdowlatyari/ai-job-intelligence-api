@@ -3,7 +3,51 @@
 from datetime import datetime
 from typing import List, Optional, Literal
 
-from pydantic import BaseModel, HttpUrl, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, HttpUrl, Field, field_validator, model_validator
+
+import json as _json
+
+
+# ---------------------------------------------------------------------------
+# Auth schemas
+# ---------------------------------------------------------------------------
+
+class UserRegister(BaseModel):
+    """Schema for user registration."""
+
+    email: EmailStr
+    password: str = Field(min_length=8)
+    name: Optional[str] = None
+
+
+class UserLogin(BaseModel):
+    """Schema for user login."""
+
+    email: EmailStr
+    password: str
+
+
+class UserRead(BaseModel):
+    """Schema for returning user info (no password)."""
+
+    id: str
+    email: str
+    name: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class TokenResponse(BaseModel):
+    """Schema for JWT token response."""
+
+    access_token: str
+    token_type: str = "bearer"
+
+
+# ---------------------------------------------------------------------------
+# Job schemas
+# ---------------------------------------------------------------------------
 
 
 class JobCreate(BaseModel):
@@ -55,11 +99,26 @@ class JobRead(BaseModel):
     employment_type: Optional[str] = None
     description_raw: Optional[str] = None
     description_clean: Optional[str] = None
-    skills_json: Optional[str] = None
+    skills: Optional[List[str]] = Field(default=None, validation_alias="skills_json")
     summary: Optional[str] = None
     created_at: datetime
     date_posted: Optional[str] = None
     job_type: Optional[str] = None
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def parse_skills_json(cls, v: object) -> Optional[List[str]]:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                parsed = _json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (_json.JSONDecodeError, TypeError):
+                pass
+            return [v]
+        return v
 
     model_config = {"from_attributes": True}
 

@@ -3,8 +3,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
+from app.auth import get_current_user
 from app.db import get_session
-from app.models import Job
+from app.models import Job, User
 from app.schemas import SummarizeResponse
 from app.services.summarizer import generate_placeholder_summary
 
@@ -15,6 +16,7 @@ router = APIRouter()
 def summarize_job(
     job_id: str,
     session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
 ) -> SummarizeResponse:
     """Generate a heuristic-based summary for the given job and persist the summary text.
 
