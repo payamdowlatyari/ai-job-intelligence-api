@@ -33,9 +33,47 @@ class UserRead(BaseModel):
     id: str
     email: str
     name: Optional[str] = None
+    phone: Optional[str] = None
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    website: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    skills: Optional[List[str]] = Field(default=None, validation_alias="skills_json")
+    resume_text: Optional[str] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def parse_skills_json(cls, v: object) -> Optional[List[str]]:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                parsed = _json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (_json.JSONDecodeError, TypeError):
+                pass
+            return [v]
+        return v
 
     model_config = {"from_attributes": True}
+
+
+class UserProfileUpdate(BaseModel):
+    """Schema for updating user profile fields."""
+
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    website: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    skills: Optional[List[str]] = None
+    resume_text: Optional[str] = None
 
 
 class TokenResponse(BaseModel):

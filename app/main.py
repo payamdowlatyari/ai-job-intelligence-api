@@ -37,6 +37,7 @@ app = FastAPI(
         "url": "https://github.com/ai-job-intelligence/ai-job-intelligence-api",
     },
     lifespan=lifespan,
+    default_response_class=JSONResponse,
 )
 
 app.add_middleware(
@@ -70,15 +71,29 @@ def root() -> dict:
         "message": "Welcome to the AI Job Intelligence API! 🚀",
         "version": API_VERSION,
         "root_path": ROOT_PATH,
+        "documentation": f"{ROOT_PATH}/docs",
+        "redoc": f"{ROOT_PATH}/redoc",
+        "ip_info": "Use /ip endpoint to get your IP address",
+        "headers": "Use /headers endpoint to get request headers",
     }
 
+
 @app.get("/health", tags=["general"])
-def health_check() -> dict:
+def health() -> dict:
     """Return a simple health-check response."""
-    return {
-        "status": "ok",
-        "message": "AI Job Intelligence API is healthy and running! ✅",
-    }
+    return {"status": "ok", "message": "AI Job Intelligence API is healthy and running! ✅"}
+
+
+@app.get("/headers", tags=["general"])
+async def headers(request: Request) -> dict:
+    """Return request headers."""
+    return {"headers": dict(request.headers)}
+
+
+@app.get("/ip", tags=["general"])
+async def ip(request: Request) -> dict:
+    """Return the client's IP address."""
+    return {"ip": request.client.host}
 
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
