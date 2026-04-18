@@ -9,6 +9,8 @@ from sqlmodel.pool import StaticPool
 
 from app.main import app
 from app.db import get_session
+from app.models import User
+from app.auth import hash_password, create_access_token
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -40,6 +42,21 @@ def client_fixture(session: Session):
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(name="auth_headers")
+def auth_headers_fixture(session: Session) -> dict:
+    """Create a test user and return Bearer auth headers."""
+    user = User(
+        email="jobs-test@example.com",
+        hashed_password=hash_password("testpassword"),
+        name="Jobs Test User",
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    token = create_access_token(user.id)
+    return {"Authorization": f"Bearer {token}"}
+
+
 # ---------------------------------------------------------------------------
 # Health check
 # ---------------------------------------------------------------------------
@@ -56,9 +73,9 @@ def test_health_check(client: TestClient) -> None:
 # GET /jobs (empty state)
 # ---------------------------------------------------------------------------
 
-def test_list_jobs_empty(client: TestClient) -> None:
+def test_list_jobs_empty(client: TestClient, auth_headers: dict) -> None:
     """GET /jobs on an empty database should return an empty list."""
-    response = client.get("/jobs")
+    response = client.get("/jobs", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 0
@@ -69,9 +86,9 @@ def test_list_jobs_empty(client: TestClient) -> None:
 # GET /jobs/{job_id} — not found
 # ---------------------------------------------------------------------------
 
-def test_get_job_not_found(client: TestClient) -> None:
+def test_get_job_not_found(client: TestClient, auth_headers: dict) -> None:
     """GET /jobs/999 for a non-existent job should return 404."""
-    response = client.get("/jobs/999")
+    response = client.get("/jobs/999", headers=auth_headers)
     assert response.status_code == 404
 
 
@@ -98,25 +115,26 @@ MOCK_HTML = """
 
 
 @patch("app.services.fetcher.fetch_html", new_callable=AsyncMock, return_value=MOCK_HTML)
-def test_ingest_job(mock_fetch, client: TestClient) -> None:
+def test_ingest_job(mock_fetch, client: TestClient, auth_headers: dict) -> None:
     """POST /jobs/ingest should fetch, parse and store a job then return it."""
     payload = {"urls": ["https://example.com/job/python-dev"]}
-    response = client.post("/jobs/ingest", json=payload)
+    response = client.post("/jobs/ingest", json=payload, headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["ingested_count"] == 1
     job = data["jobs"][0]
     assert job["title"] == "Python Developer"
     assert job["company"] == "MockCorp"
-    assert "Python" in job["skills_json"]
+    assert isinstance(job["skills"], list)
+    assert "Python" in job["skills"]
 
 
 @patch("app.services.fetcher.fetch_html", new_callable=AsyncMock, return_value=MOCK_HTML)
-def test_ingest_duplicate_url(mock_fetch, client: TestClient) -> None:
+def test_ingest_duplicate_url(mock_fetch, client: TestClient, auth_headers: dict) -> None:
     """Ingesting the same URL twice should not create a duplicate record."""
     payload = {"urls": ["https://example.com/job/dup"]}
-    client.post("/jobs/ingest", json=payload)
-    response = client.post("/jobs/ingest", json=payload)
+    client.post("/jobs/ingest", json=payload, headers=auth_headers)
+    response = client.post("/jobs/ingest", json=payload, headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["existing_count"] == 1
@@ -125,37 +143,37 @@ def test_ingest_duplicate_url(mock_fetch, client: TestClient) -> None:
 
 
 @patch("app.services.fetcher.fetch_html", new_callable=AsyncMock, return_value=MOCK_HTML)
-def test_get_job_after_ingest(mock_fetch, client: TestClient) -> None:
+def test_get_job_after_ingest(mock_fetch, client: TestClient, auth_headers: dict) -> None:
     """After ingestion, GET /jobs/{job_id} should return the stored job."""
     payload = {"urls": ["https://example.com/job/get-test"]}
-    ingest_response = client.post("/jobs/ingest", json=payload)
+    ingest_response = client.post("/jobs/ingest", json=payload, headers=auth_headers)
     job_id = ingest_response.json()["jobs"][0]["id"]
 
-    response = client.get(f"/jobs/{job_id}")
+    response = client.get(f"/jobs/{job_id}", headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["id"] == job_id
 
 
 @patch("app.services.fetcher.fetch_html", new_callable=AsyncMock, return_value=MOCK_HTML)
-def test_list_jobs_after_ingest(mock_fetch, client: TestClient) -> None:
+def test_list_jobs_after_ingest(mock_fetch, client: TestClient, auth_headers: dict) -> None:
     """After ingestion, GET /jobs should list the stored job."""
     payload = {"urls": ["https://example.com/job/list-test"]}
-    client.post("/jobs/ingest", json=payload)
+    client.post("/jobs/ingest", json=payload, headers=auth_headers)
 
-    response = client.get("/jobs")
+    response = client.get("/jobs", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["total"] >= 1
 
 
 @patch("app.services.fetcher.fetch_html", new_callable=AsyncMock, return_value=MOCK_HTML)
-def test_summarize_job(mock_fetch, client: TestClient) -> None:
+def test_summarize_job(mock_fetch, client: TestClient, auth_headers: dict) -> None:
     """POST /jobs/{job_id}/summarize should return a SummarizeResponse."""
     payload = {"urls": ["https://example.com/job/summarize-test"]}
-    ingest_response = client.post("/jobs/ingest", json=payload)
+    ingest_response = client.post("/jobs/ingest", json=payload, headers=auth_headers)
     job_id = ingest_response.json()["jobs"][0]["id"]
 
-    response = client.post(f"/jobs/{job_id}/summarize")
+    response = client.post(f"/jobs/{job_id}/summarize", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["job_id"] == job_id
@@ -166,14 +184,14 @@ def test_summarize_job(mock_fetch, client: TestClient) -> None:
 
 
 @patch("app.services.fetcher.fetch_html", new_callable=AsyncMock, return_value=MOCK_HTML)
-def test_match_job(mock_fetch, client: TestClient) -> None:
+def test_match_job(mock_fetch, client: TestClient, auth_headers: dict) -> None:
     """POST /jobs/{job_id}/match should return a MatchResponse."""
     payload = {"urls": ["https://example.com/job/match-test"]}
-    ingest_response = client.post("/jobs/ingest", json=payload)
+    ingest_response = client.post("/jobs/ingest", json=payload, headers=auth_headers)
     job_id = ingest_response.json()["jobs"][0]["id"]
 
     match_payload = {"skills": ["Python", "Docker"]}
-    response = client.post(f"/jobs/{job_id}/match", json=match_payload)
+    response = client.post(f"/jobs/{job_id}/match", json=match_payload, headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert "fit_score" in data

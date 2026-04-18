@@ -78,6 +78,12 @@ def root() -> dict:
     }
 
 
+@app.get("/health", tags=["general"])
+def health() -> dict:
+    """Return a simple health-check response."""
+    return {"status": "ok", "message": "AI Job Intelligence API is healthy and running! ✅"}
+
+
 @app.get("/headers", tags=["general"])
 async def headers(request: Request) -> dict:
     """Return request headers."""
