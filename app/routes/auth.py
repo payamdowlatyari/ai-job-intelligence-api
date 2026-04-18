@@ -64,3 +64,10 @@ def login(
 def get_me(current_user: User = Depends(get_current_user)) -> UserRead:
     """Return the currently authenticated user."""
     return UserRead.model_validate(current_user)
+
+
+@router.get("/me/token", response_model=TokenResponse)
+def get_me_token(current_user: User = Depends(get_current_user)) -> TokenResponse:
+    """Return a new access token for the currently authenticated user."""
+    token = create_access_token(current_user.id)
+    return TokenResponse(access_token=token)
